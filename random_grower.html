@@ -183,7 +183,8 @@
 				}
 				START_Y =  idiv( mapRange(_y, 0, 1, 0, HEIGHT), 1 );
 
-				
+				NEIGHBORHOOD = getNeighborhood();
+				DISTANCE_FUNC = getDist();
 				CLUSTERING_RADIUS = clamp( getNumericalValueOfInput('inputSpread',500), 1, 100000000);
 				
 				let first_point = new Point( START_X, START_Y );
