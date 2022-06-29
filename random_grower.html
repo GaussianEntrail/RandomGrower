@@ -100,6 +100,7 @@
 			const TREE = [ [-1,0], [1,0], [0,-1], [-1,-1], [1, -1] ];
 			const TREE2 = [[-1,-1], [1,-1], [0,-1] ]
 			const SLANT = [[-1,-1], [1, 0], [-1,0] ]
+			const EX = [[-1,-1], [1, 1], [-1,1], [1,-1]  ]
 			
 			let WRAPAROUND = true;
 			
@@ -127,6 +128,7 @@
 				if (option == 2) {return TREE;}
 				if (option == 3) {return TREE2;}
 				if (option == 4) {return SLANT;}
+				if (option == 5) {return EX;}
 			}
 			//SET THE DISTANCE ALGO
 			const getDist = (defaultValue = taxicab) => {
