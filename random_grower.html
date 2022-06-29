@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Random Grower</title>
+		<style>
+			body {
+				background-color: black;
+				color: white;
+			}
+			.settingsBox {
+				border-style: solid;
+				border-color: white;
+				border-width: 2px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>RandomGrower</h1>
+		<p>watch it grow</p>
+		<br>
+		<div class="settingsBox">
+			<em>Growth properties</em>
+			<ul>
+				<li><label for = "inputNeighborhood">Neighborhood (directions of growth):</label><select id = 'inputNeighborhood'>
+						<option value= 0 selected>MOORE</option>
+						<option value= 1>CROSS</option>
+						<option value= 2>TREE</option>
+						<option value= 3>TREE2</option>
+				</select></li>
+				<br>
+				<li><label for = "inputDistancealgo">Neighborhood (directions of growth):</label><select id = 'inputDistancealgo'>
+						<option value= 0 selected>TAXICAB</option>
+						<option value= 1>EUCLIDEAN</option>
+				</select></li>
+				<br>
+				<li><label for='inputWraparound'>Wraparound:</label><input type="checkbox" id='inputWraparound' checked = true></li>
+				
+				
+			</ul>
+		</div><br>
+		
+		<div class="settingsBox">	
+			<em>Starting position</em>
+			<ul>
+				<li>
+					<label for='start_X'>Start X:</label><input type="number" value = 0.5 id='start_X'>
+					<label for='randomise_Y'>Randomize (this will override your input):</label><input type="checkbox" id='randomise_X'>
+				</li><br>
+				<li>
+					<label for='start_Y'>Start Y:</label><input type="number" value = 0.5 id='start_Y'>
+					<label for='randomise_Y'>Randomize (this will override your input):</label><input type="checkbox" id='randomise_Y'>
+				</li>
+			</ul>
+		</div><br>
+		
+		<div class = "settingsBox">
+				<input type="button" value="GO!" onclick="init()"></input>
+		</div>
+		<br>
+		
+		<canvas id="myCanvas" width = "800" height = "800"></canvas>
+		<script>
+			const canvas = document.getElementById('myCanvas');
+			const ctx = canvas.getContext('2d');
+			
+			//integer division
+			const idiv = (a, b) => (a / b)|0;
+			//random integer
+			const randint = (a) => ( ( Math.random() * a ) | 0 ) % a;
+			//absolute value
+			const abs = (a) => (a < 0) ? -a : a;
+			//taxicab distance
+			const taxicab = (x1,y1,x2,y2) => abs(y2 - y1) + abs(x2 - x1);
+			//euclidean 
+			const euclid = (x1,y1,x2,y2) => ( ((y2 - y1) ** 2) + ((x2 - x1) ** 2) ) ** 0.5;
+			
+			const randomSelect = (arr) => arr[ randint(arr.length) % arr.length ];
+			//clamp
+			const clamp = (value, min = 0, max = 800) => (value < min) ? min : (value > max) ? max : value;
+			
+			//lerp
+			const lerp = (t, v0, v1) => (t <= 0.0) ? v0 : (t >= 1.0) ? v1 : (v1 * t) + (v0 * (1 - t));
+			
+			//map
+			const mapRange = (value, min1, max1, min2, max2) => lerp( (value - min1) / (max1 - min1) , min2, max2);
+			
+			
+			const PIXEL_SIZE = 4;
+			const WIDTH = idiv(ctx.canvas.width, PIXEL_SIZE);
+			const HEIGHT = idiv(ctx.canvas.height, PIXEL_SIZE);
+			
+			//neighborhoods
+			const MOORE = Array(3).fill(0).map( (_,c) => Array(3).fill(0).map( (_,r) => [-1 + c, -1 + r] )).flat();
+			const CROSS = [ [-1,0], [1,0], [0,-1], [0,1] ];
+			const TREE = [ [-1,0], [1,0], [0,-1], [-1,-1], [1, -1] ];
+			const TREE2 = [[-1,-1], [1,-1], [0,-1] ]
+			
+			let WRAPAROUND = true;
+			
+			const HARD_LIMIT = 1000000000;
+			
+			//GET PARAMETERS/INPUT VALUES
+			const getBooleanValueOfInput = (inputID, defaultValue = false) => {
+				return document.getElementById(inputID).checked;
+			};
+			
+			const getNumericalValueOfInput = (inputID, defaultValue = 0, isInt = true) => { 
+				
+				let getNum = isInt? parseInt( document.getElementById(inputID).value ) : parseFloat( document.getElementById(inputID).value ); 
+				
+				return isNaN(getNum) ? defaultValue : getNum;				
+			};
+			
+			let points = [];
+			
+			class Point {
+				constructor(x, y) {
+					this.x = WRAPAROUND ? (x + WIDTH) % WIDTH : x;
+					this.y = WRAPAROUND ? (y + HEIGHT) % HEIGHT : y;
+					this.neighbors = [];
+					this.age = 1;
+				}
+				draw() {
+					ctx.fillStyle = 'white';
+					ctx.fillRect(this.x * PIXEL_SIZE, this.y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+				}
+			}
+			const DUMMY = new Point(-999, -999); //for use with the exclusion algorithm
+			let START_X = idiv(WIDTH, 2);
+			let START_Y = idiv(HEIGHT, 2);
+			
+			//returns a list of points "At" (x, y)
+			const pointAt = (x, y) => points.filter( p => p.x == x && p.y == y);
+			
+			//returns a list of points adjacent to (x,y)
+			const pointsNear = (x, y, r = 1, exclude = DUMMY, f = taxicab) => points.filter( p => f(x,y,p.x,p.y) <= r && p.x != exclude.x && p.y != exclude.y);
+			
+			const init = () => {
+				points = [];
+				
+				WRAPAROUND = getBooleanValueOfInput('inputWraparound', true);
+				
+				let _x = 0.5 , _y = 0.5;
+				if (getBooleanValueOfInput('randomise_X', false)) {
+					_x = Math.random();
+				} else {
+					_x = getNumericalValueOfInput('start_X',0.5, false);
+				}
+				START_X =  idiv( mapRange(_x, 0, 1, 0, WIDTH), 1 );
+				
+				if (getBooleanValueOfInput('randomise_Y', false)) {
+					_y = Math.random();
+				} else {
+					_y = getNumericalValueOfInput('start_Y',0.5, false);
+					
+				}
+				START_Y =  idiv( mapRange(_y, 0, 1, 0, HEIGHT), 1 );
+				
+				
+				let first_point = new Point( START_X, START_Y );
+				points.push(first_point);
+				
+				
+				
+				
+				
+				draw();
+			}
+			
+			const update = (neighborhood = TREE2, max_age = 3, max_neighbors = 2, distanceAlgo = taxicab) => {
+				if (points.length > HARD_LIMIT) {return;}
+				
+				
+				let _n, _x, _y, _spread, isCollision, isCrowded, newPoint;
+				
+				let giveNeighbors = points.filter( x => x.age <= max_age && x.neighbors.length <= max_neighbors);
+				
+				if (!giveNeighbors) {return;}
+				
+				giveNeighbors.map( 
+				//points.map(
+					p => {
+						let attempts = 0;
+						p.age++;
+						while (true) {
+							
+							_spread = points.length //taxicab(p.x, p.y, START_X, START_Y);
+							_n = randomSelect(neighborhood); //console.log(_n);
+							
+							if (WRAPAROUND) {
+								_x = (p.x + _n[0] + WIDTH) % WIDTH;
+								_y = (p.y + _n[1] + HEIGHT) % HEIGHT; 
+							} else {
+								_x = clamp(p.x + _n[0], 0, WIDTH);
+								_y = clamp(p.y + _n[1], 0, HEIGHT); 
+							}
+							
+							isCollision = pointAt(_x, _y).length > 0; 
+							isCrowded = pointsNear(_x, _y, 2 + idiv(_spread, 500), p, distanceAlgo).length > 0;
+							
+							//we can make a new point!
+							if (!isCollision && !isCrowded) {
+								newPoint = new Point(_x, _y);
+								points.push(newPoint);
+								p.neighbors.push(newPoint);
+								
+								break;
+							}
+							
+							attempts++;
+							if (attempts > 10) {break;}
+						}
+						
+					}
+				);
+			
+				draw();
+			}
+			
+			const draw = () => {
+				ctx.fillStyle = 'black'
+				ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+				
+				points.map( p => p.draw() );
+			};
+			
+			init();
+			
+			setInterval(update, 1);
+			
+		</script>
+	</body>
+</html>
