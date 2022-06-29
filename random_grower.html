@@ -112,6 +112,26 @@
 				return isNaN(getNum) ? defaultValue : getNum;				
 			};
 			
+			//SET THE NEIGHBORHOOD
+			const getNeighborhood = (defaultValue = MOORE) => {
+				let dropdown = document.getElementById('inputNeighborhood');
+				let option = parseInt( dropdown.options[dropdown.selectedIndex].value );
+				if (isNaN(option)) {return defaultValue;}
+				if (option == 0) {return MOORE;}
+				if (option == 1) {return CROSS;}
+				if (option == 2) {return TREE;}
+				if (option == 3) {return TREE2;}
+			}
+			//SET THE DISTANCE ALGO
+			const getDist = (defaultValue = taxicab) => {
+				let dropdown = document.getElementById('inputDistancealgo');
+				let option = parseInt( dropdown.options[dropdown.selectedIndex].value );
+				if (isNaN(option)) {return defaultValue;}
+				if (option == 0) {return taxicab;}
+				if (option == 1) {return euclid;}
+			}
+			
+			
 			let points = [];
 			
 			class Point {
@@ -129,6 +149,9 @@
 			const DUMMY = new Point(-999, -999); //for use with the exclusion algorithm
 			let START_X = idiv(WIDTH, 2);
 			let START_Y = idiv(HEIGHT, 2);
+			let NEIGHBORHOOD = MOORE;
+			let DISTANCE_FUNC = taxicab;
+			let CLUSTERING_RADIUS = 500;
 			
 			//returns a list of points "At" (x, y)
 			const pointAt = (x, y) => points.filter( p => p.x == x && p.y == y);
@@ -156,19 +179,16 @@
 					
 				}
 				START_Y =  idiv( mapRange(_y, 0, 1, 0, HEIGHT), 1 );
+
 				
 				
 				let first_point = new Point( START_X, START_Y );
 				points.push(first_point);
 				
-				
-				
-				
-				
 				draw();
 			}
 			
-			const update = (neighborhood = TREE2, max_age = 3, max_neighbors = 2, distanceAlgo = taxicab) => {
+			const update = (max_age = 3, max_neighbors = 2) => {
 				if (points.length > HARD_LIMIT) {return;}
 				
 				
@@ -186,7 +206,7 @@
 						while (true) {
 							
 							_spread = points.length //taxicab(p.x, p.y, START_X, START_Y);
-							_n = randomSelect(neighborhood); //console.log(_n);
+							_n = randomSelect(NEIGHBORHOOD); //console.log(_n);
 							
 							if (WRAPAROUND) {
 								_x = (p.x + _n[0] + WIDTH) % WIDTH;
@@ -197,7 +217,7 @@
 							}
 							
 							isCollision = pointAt(_x, _y).length > 0; 
-							isCrowded = pointsNear(_x, _y, 2 + idiv(_spread, 500), p, distanceAlgo).length > 0;
+							isCrowded = pointsNear(_x, _y, 2 + idiv(_spread, CLUSTERING_RADIUS), p, DISTANCE_FUNC).length > 0;
 							
 							//we can make a new point!
 							if (!isCollision && !isCrowded) {
