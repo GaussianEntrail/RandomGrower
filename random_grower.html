@@ -27,6 +27,7 @@
 						<option value= 1>CROSS</option>
 						<option value= 2>TREE</option>
 						<option value= 3>TREE2</option>
+						<option value= 4>SLANT</option>
 				</select></li>
 				<br>
 				<li><label for = "inputDistancealgo">Neighborhood (directions of growth):</label><select id = 'inputDistancealgo'>
@@ -98,6 +99,7 @@
 			const CROSS = [ [-1,0], [1,0], [0,-1], [0,1] ];
 			const TREE = [ [-1,0], [1,0], [0,-1], [-1,-1], [1, -1] ];
 			const TREE2 = [[-1,-1], [1,-1], [0,-1] ]
+			const SLANT = [[-1,-1], [1, 0], [-1,0] ]
 			
 			let WRAPAROUND = true;
 			
@@ -124,6 +126,7 @@
 				if (option == 1) {return CROSS;}
 				if (option == 2) {return TREE;}
 				if (option == 3) {return TREE2;}
+				if (option == 4) {return SLANT;}
 			}
 			//SET THE DISTANCE ALGO
 			const getDist = (defaultValue = taxicab) => {
