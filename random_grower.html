@@ -28,7 +28,7 @@
 						<option value= 2>TREE</option>
 						<option value= 3>TREE2</option>
 						<option value= 4>SLANT</option>
-						<option value= 5>EX</option>
+						<option value= 5>EXTEND</option>
 				</select></li>
 				<br>
 				<li><label for = "inputDistancealgo">Neighborhood (directions of growth):</label><select id = 'inputDistancealgo'>
@@ -80,7 +80,7 @@
 			//euclidean 
 			const euclid = (x1,y1,x2,y2) => ( ((y2 - y1) ** 2) + ((x2 - x1) ** 2) ) ** 0.5;
 			
-			const randomSelect = (arr) => arr[ randint(arr.length) % arr.length ];
+			const randomSelect = (arr) => arr[ randint(arr.length) ];
 			//clamp
 			const clamp = (value, min = 0, max = 800) => (value < min) ? min : (value > max) ? max : value;
 			
@@ -101,7 +101,8 @@
 			const TREE = [ [-1,0], [1,0], [0,-1], [-1,-1], [1, -1] ];
 			const TREE2 = [[-1,-1], [1,-1], [0,-1] ]
 			const SLANT = [[-1,-1], [1, 0], [-1,0] ]
-			const EX = [[-1,-1], [1, 1], [-1,1], [1,-1]  ]
+			const EXTEND = Array(5).fill(0).map( (_,c) => Array(5).fill(0).map( (_,r) => [-2 + c, -2 + r] )).flat().filter( n => abs(n[0]) + abs(n[1]) <= 2);
+			
 			
 			let WRAPAROUND = true;
 			
@@ -129,7 +130,7 @@
 				if (option == 2) {return TREE;}
 				if (option == 3) {return TREE2;}
 				if (option == 4) {return SLANT;}
-				if (option == 5) {return EX;}
+				if (option == 5) {return EXTEND;}
 			}
 			//SET THE DISTANCE ALGO
 			const getDist = (defaultValue = taxicab) => {
@@ -199,7 +200,7 @@
 				draw();
 			}
 			
-			const update = (max_age = 3, max_neighbors = 2) => {
+			const update = (max_age = 4, max_neighbors = 3) => {
 				if (points.length > HARD_LIMIT) {return;}
 				
 				
@@ -212,6 +213,7 @@
 				giveNeighbors.map( 
 				//points.map(
 					p => {
+						//if (Math.random() > 0.5) {return;}
 						let attempts = 0;
 						p.age++;
 						while (true) {
