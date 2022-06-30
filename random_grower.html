@@ -29,6 +29,10 @@
 						<option value= 3>TREE2</option>
 						<option value= 4>SLANT</option>
 						<option value= 5>EXTEND</option>
+						<option value= 6>GAPPY</option>
+						<option value= 7>SUPEREXTEND</option>
+						<option value= 8>EXTRACROSS</option>
+						<option value= 9>MEGACROSS</option>
 				</select></li>
 				<br>
 				<li><label for = "inputDistancealgo">Neighborhood (directions of growth):</label><select id = 'inputDistancealgo'>
@@ -64,7 +68,7 @@
 		</div>
 		<br>
 		
-		<canvas id="myCanvas" width = "800" height = "800"></canvas>
+		<canvas id="myCanvas" width = "640" height = "640"></canvas>
 		<script>
 			const canvas = document.getElementById('myCanvas');
 			const ctx = canvas.getContext('2d');
@@ -96,13 +100,16 @@
 			const HEIGHT = idiv(ctx.canvas.height, PIXEL_SIZE);
 			
 			//neighborhoods
-			const MOORE = Array(3).fill(0).map( (_,c) => Array(3).fill(0).map( (_,r) => [-1 + c, -1 + r] )).flat();
+			const MOORE = Array(3).fill(0).map( (_,c) => Array(3).fill(0).map( (_,r) => [-1 + c, -1 + r] )).flat().filter( p => !(p[0] == 0 && p[1] == 0) );
 			const CROSS = [ [-1,0], [1,0], [0,-1], [0,1] ];
 			const TREE = [ [-1,0], [1,0], [0,-1], [-1,-1], [1, -1] ];
 			const TREE2 = [[-1,-1], [1,-1], [0,-1] ]
 			const SLANT = [[-1,-1], [1, 0], [-1,0] ]
-			const EXTEND = Array(5).fill(0).map( (_,c) => Array(5).fill(0).map( (_,r) => [-2 + c, -2 + r] )).flat().filter( n => abs(n[0]) + abs(n[1]) <= 2);
-			
+			const EXTEND = Array(5).fill(0).map( (_,c) => Array(5).fill(0).map( (_,r) => [-2 + c, -2 + r] )).flat().filter( n => abs(n[0]) + abs(n[1]) <= 2).filter( p => !(p[0] == 0 && p[1] == 0) );
+			const GAPPY = Array(3).fill(0).map( (_,c) => Array(3).fill(0).map( (_,r) => [2 * (-1 + c), 2 * (-1 + r)] )).flat();
+			const SUPEREXTEND = Array(7).fill(0).map( (_,c) => Array(7).fill(0).map( (_,r) => [-2 + c, -2 + r] )).flat().filter( n => abs(n[0]) + abs(n[1]) <= 3).filter( p => !(p[0] == 0 && p[1] == 0) );
+			const EXTRACROSS = [ [-1,0], [1,0], [0,-1], [0,1], [-2,0], [2,0], [0,-2], [0,2]];
+			const MEGACROSS = [ [-1,0], [1,0], [0,-1], [0,1], [-2,0], [2,0], [0,-2], [0,2], [-3,0], [3,0], [0,-3], [0,3] ];
 			
 			let WRAPAROUND = true;
 			
@@ -131,6 +138,10 @@
 				if (option == 3) {return TREE2;}
 				if (option == 4) {return SLANT;}
 				if (option == 5) {return EXTEND;}
+				if (option == 6) {return GAPPY;}
+				if (option == 7) {return SUPEREXTEND;}
+				if (option == 8) {return EXTRACROSS;}
+				if (option == 9) {return MEGACROSS;}
 			}
 			//SET THE DISTANCE ALGO
 			const getDist = (defaultValue = taxicab) => {
@@ -200,7 +211,7 @@
 				draw();
 			}
 			
-			const update = (max_age = 4, max_neighbors = 3) => {
+			const update = (max_age = 3, max_neighbors = 1) => {
 				if (points.length > HARD_LIMIT) {return;}
 				
 				
