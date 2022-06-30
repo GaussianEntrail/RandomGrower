@@ -44,6 +44,7 @@
 				<li><label for='inputWraparound'>Wraparound:</label><input type="checkbox" id='inputWraparound' checked = true></li><br>
 				<li>
 					<label for='inputSpread'>Spread (?):</label><input type="number" value = 500 id='inputSpread'>
+					<label for='inputDoSpread'>Enable spread (may cause slowness if disabled):</label><input type="checkbox" id='inputDoSpread' checked = true>
 				</li><br>
 				
 				
@@ -175,13 +176,15 @@
 			let START_Y = idiv(HEIGHT, 2);
 			let NEIGHBORHOOD = MOORE;
 			let DISTANCE_FUNC = taxicab;
+			let DO_CLUSTERING = true;
 			let CLUSTERING_RADIUS = 500;
+			
 			
 			//returns a list of points "At" (x, y)
 			const pointAt = (x, y) => points.filter( p => p.x == x && p.y == y);
 			
 			//returns a list of points adjacent to (x,y)
-			const pointsNear = (x, y, r = 1, exclude = DUMMY, f = taxicab) => points.filter( p => f(x,y,p.x,p.y) <= r && p.x != exclude.x && p.y != exclude.y);
+			const pointsNear = (x, y, r = 1, exclude = DUMMY, f = taxicab) => points.filter( p => f(x,y,p.x,p.y) <= r && p.x != exclude.x && p.y != exclude.y).length;
 			
 			const init = () => {
 				points = [];
@@ -206,7 +209,12 @@
 
 				NEIGHBORHOOD = getNeighborhood();
 				DISTANCE_FUNC = getDist();
+				
+				DO_CLUSTERING = getBooleanValueOfInput('inputDoSpread', true);
 				CLUSTERING_RADIUS = clamp( getNumericalValueOfInput('inputSpread',500), 1, 100000000);
+				
+				
+				
 				
 				let first_point = new Point( START_X, START_Y );
 				points.push(first_point);
@@ -214,7 +222,7 @@
 				draw();
 			}
 			
-			const update = (max_age = 3, max_neighbors = 1) => {
+			const update = (max_age = 2, max_neighbors = 2) => {
 				if (points.length > HARD_LIMIT) {return;}
 				
 				
@@ -224,12 +232,11 @@
 				
 				if (!giveNeighbors) {return;}
 				
-				giveNeighbors.map( 
-				//points.map(
+				giveNeighbors.forEach( 
 					p => {
-						//if (Math.random() > 0.5) {return;}
-						let attempts = 0;
 						p.age++;
+						let attempts = 0;
+						
 						while (true) {
 							
 							_spread = points.length //taxicab(p.x, p.y, START_X, START_Y);
@@ -244,14 +251,17 @@
 							}
 							
 							isCollision = pointAt(_x, _y).length > 0; 
-							isCrowded = pointsNear(_x, _y, 2 + idiv(_spread, CLUSTERING_RADIUS), p, DISTANCE_FUNC).length > 0;
+							if (DO_CLUSTERING) {
+								isCrowded = pointsNear(_x, _y, 2 + (_spread / CLUSTERING_RADIUS), p, DISTANCE_FUNC) > 0;
+							} else {
+								isCrowded = pointsNear(_x, _y, 2, p, DISTANCE_FUNC) > 0;
+							}
 							
 							//we can make a new point!
 							if (!isCollision && !isCrowded) {
 								newPoint = new Point(_x, _y);
 								points.push(newPoint);
 								p.neighbors.push(newPoint);
-								
 								break;
 							}
 							
